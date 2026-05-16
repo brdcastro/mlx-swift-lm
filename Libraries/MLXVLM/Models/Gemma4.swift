@@ -1186,7 +1186,17 @@ private final class Gemma4TextLanguageModel: Module, KVCacheDimensionProvider {
 private final class Gemma4ClippableLinear: Module, UnaryLayer {
     let useClipping: Bool
 
-    @ModuleInfo(key: "linear") var linear: Linear
+    // `Module` (not `Linear`) so the loader accepts the projection in
+    // either form — `Linear` for bf16/fp16 checkpoints, or
+    // `QuantizedLinear` for 4-bit / 8-bit ones. Same pattern as
+    // `Gemma3.lmHead` and `Gemma4MultimodalEmbedder.embeddingProjection`.
+    //
+    // Without this, 4-bit Gemma 4 checkpoints fail to load with
+    // `Key vision_tower.encoder.layers.0.self_attn.o_proj.linear.weight
+    // not found in Gemma4ClippableLinear.Linear` because the loader
+    // sees the quantized triplet (weight + scales + biases) on disk
+    // but the class expects a single weight tensor.
+    @ModuleInfo(key: "linear") var linear: Module
     @ModuleInfo(key: "input_min") var inputMin: MLXArray?
     @ModuleInfo(key: "input_max") var inputMax: MLXArray?
     @ModuleInfo(key: "output_min") var outputMin: MLXArray?
@@ -1204,6 +1214,16 @@ private final class Gemma4ClippableLinear: Module, UnaryLayer {
         super.init()
     }
 
+    private func applyLinear(_ x: MLXArray) -> MLXArray {
+        if let l = linear as? Linear {
+            return l(x)
+        } else if let q = linear as? QuantizedLinear {
+            return q(x)
+        } else {
+            fatalError("Gemma4ClippableLinear.linear must be Linear or QuantizedLinear")
+        }
+    }
+
     func callAsFunction(_ x: MLXArray) -> MLXArray {
         let clippedInput =
             if let inputMin, let inputMax {
@@ -1211,7 +1231,7 @@ private final class Gemma4ClippableLinear: Module, UnaryLayer {
             } else {
                 x
             }
-        let projected = linear(clippedInput)
+        let projected = applyLinear(clippedInput)
         if let outputMin, let outputMax {
             return clip(projected, min: outputMin, max: outputMax)
         }
