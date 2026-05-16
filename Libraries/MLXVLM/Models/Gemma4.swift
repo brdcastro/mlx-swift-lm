@@ -1626,7 +1626,18 @@ private final class Gemma4VisionModel: Module {
 }
 
 private final class Gemma4MultimodalEmbedder: Module, UnaryLayer {
-    @ModuleInfo(key: "embedding_projection") var embeddingProjection: Linear
+    // `Module` (not `Linear`) so the loader accepts either the raw
+    // `Linear` (bf16 / fp16 checkpoints) or a `QuantizedLinear`
+    // shape (4-bit / 8-bit checkpoints, which ship `weight + scales
+    // + biases` for this projection). Mirrors the
+    // `Gemma3.lmHead: Module` pattern in this same library.
+    //
+    // Without this, 4-bit Gemma 4 checkpoints fail to load with
+    // `Key embed_vision.embedding_projection.weight not found in
+    // Gemma4.Gemma4MultimodalEmbedder.Linear` because the loader
+    // sees the quantized triplet on disk but the class expects a
+    // single weight tensor.
+    @ModuleInfo(key: "embedding_projection") var embeddingProjection: Module
     @ModuleInfo(key: "embedding_pre_projection_norm") var embeddingPreProjectionNorm:
         Gemma4RMSNormNoScale
 
@@ -1637,7 +1648,14 @@ private final class Gemma4MultimodalEmbedder: Module, UnaryLayer {
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
-        embeddingProjection(embeddingPreProjectionNorm(x))
+        let normed = embeddingPreProjectionNorm(x)
+        if let linear = embeddingProjection as? Linear {
+            return linear(normed)
+        } else if let quantized = embeddingProjection as? QuantizedLinear {
+            return quantized(normed)
+        } else {
+            fatalError("embeddingProjection must be Linear or QuantizedLinear")
+        }
     }
 }
 
