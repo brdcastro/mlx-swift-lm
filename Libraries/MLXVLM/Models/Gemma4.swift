@@ -462,7 +462,15 @@ private final class Gemma4RMSNormNoScale: Module, UnaryLayer {
 
 private final class Gemma4RMSNormZeroShift: Module, UnaryLayer {
     let eps: Float
-    @ModuleInfo var weight: MLXArray
+    // `@ParameterInfo` is the correct wrapper for raw `MLXArray`
+    // parameters — `@ModuleInfo` is for nested `Module` children.
+    // With `@ModuleInfo`, the loader can't find
+    // `language_model.model.norm.weight` (and the equivalents inside
+    // `perLayerProjectionNorm`, `inputLayerNorm`, etc.) in the
+    // module's keyed-parameter graph and bails with
+    // `Key ... not found in Gemma4.Gemma4TextLanguageModel.Gemma4TextBackbone.Gemma4RMSNormZeroShift`
+    // on any quantized checkpoint load.
+    @ParameterInfo var weight: MLXArray
 
     init(dimensions: Int, eps: Float = 1e-6) {
         self.eps = eps
@@ -1241,7 +1249,11 @@ private final class Gemma4ClippableLinear: Module, UnaryLayer {
 
 private final class Gemma4VisionRMSNorm: Module, UnaryLayer {
     let eps: Float
-    @ModuleInfo var weight: MLXArray
+    // Same `@ParameterInfo` correction as on
+    // `Gemma4RMSNormZeroShift` — without it the vision-side norm
+    // weights (`vision_tower....post_norm.weight`, etc.) don't
+    // register as parameters and the load fails.
+    @ParameterInfo var weight: MLXArray
 
     init(dimensions: Int, eps: Float = 1e-6) {
         self.eps = eps
