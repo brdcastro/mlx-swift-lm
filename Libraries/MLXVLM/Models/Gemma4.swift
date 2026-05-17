@@ -462,19 +462,19 @@ private class Gemma4RMSNormNoScale: Module, UnaryLayer {
 
 private class Gemma4RMSNormZeroShift: Module, UnaryLayer {
     let eps: Float
-    // `@ParameterInfo` is the correct wrapper for raw `MLXArray`
-    // parameters — `@ModuleInfo` is for nested `Module` children.
-    // With `@ModuleInfo`, the loader can't find
-    // `language_model.model.norm.weight` (and the equivalents inside
-    // `perLayerProjectionNorm`, `inputLayerNorm`, etc.) in the
-    // module's keyed-parameter graph and bails with
-    // `Key ... not found in Gemma4.Gemma4TextLanguageModel.Gemma4TextBackbone.Gemma4RMSNormZeroShift`
-    // on any quantized checkpoint load.
-    @ParameterInfo var weight: MLXArray
+    // Match `MLXNN.RMSNorm` exactly: plain `public let weight` with
+    // direct assignment in init, no property wrapper. The original
+    // `@ModuleInfo var weight: MLXArray` was wrong (ModuleInfo is
+    // for Module children, not raw MLXArray parameters). A
+    // `@ParameterInfo` attempt also surfaced "Key not found" errors
+    // on some slots (e.g. `vision_tower.encoder.layers.0.pre_feedforward_layernorm.weight`).
+    // Mirroring `MLXNN.RMSNorm` is the canonical, known-working
+    // pattern in the same library.
+    public let weight: MLXArray
 
     init(dimensions: Int, eps: Float = 1e-6) {
         self.eps = eps
-        self._weight.wrappedValue = MLXArray.ones([dimensions])
+        self.weight = MLXArray.ones([dimensions])
         super.init()
     }
 
@@ -1257,15 +1257,13 @@ private class Gemma4ClippableLinear: Module, UnaryLayer {
 
 private class Gemma4VisionRMSNorm: Module, UnaryLayer {
     let eps: Float
-    // Same `@ParameterInfo` correction as on
-    // `Gemma4RMSNormZeroShift` — without it the vision-side norm
-    // weights (`vision_tower....post_norm.weight`, etc.) don't
-    // register as parameters and the load fails.
-    @ParameterInfo var weight: MLXArray
+    // Same MLXNN.RMSNorm-style fix as on `Gemma4RMSNormZeroShift`:
+    // plain `public let weight` set in init, no property wrapper.
+    public let weight: MLXArray
 
     init(dimensions: Int, eps: Float = 1e-6) {
         self.eps = eps
-        self._weight.wrappedValue = MLXArray.ones([dimensions])
+        self.weight = MLXArray.ones([dimensions])
         super.init()
     }
 
