@@ -867,7 +867,15 @@ private final class Gemma4TextDecoderLayer: Module {
     }
 }
 
-private final class Gemma4TextBackbone: Module {
+// Dropping `final` so the quantization swap on
+// `@ModuleInfo(key: "embed_tokens") var embedTokens: Embedding`
+// (and other Module children) can replace the slot with a
+// `QuantizedEmbedding` at load time. With `final`, the loader
+// reports `Key language_model.model.embed_tokens.weight not found
+// in Gemma4.Gemma4TextLanguageModel.Gemma4TextBackbone.Embedding`
+// on 4-bit checkpoints. Sibling `private class GemmaModel` in
+// Gemma3.swift (non-final) loads fine, which is the reference.
+private class Gemma4TextBackbone: Module {
     let config: Gemma4TextConfiguration
     let firstKVSharedLayerIdx: Int
     let layerIdxToCacheIdx: [Int]
