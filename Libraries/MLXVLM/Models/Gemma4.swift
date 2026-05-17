@@ -447,7 +447,7 @@ public struct Gemma4Configuration: Codable, Sendable {
 
 // MARK: - Text
 
-private final class Gemma4RMSNormNoScale: Module, UnaryLayer {
+private class Gemma4RMSNormNoScale: Module, UnaryLayer {
     let eps: Float
 
     init(eps: Float = 1e-6) {
@@ -460,7 +460,7 @@ private final class Gemma4RMSNormNoScale: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4RMSNormZeroShift: Module, UnaryLayer {
+private class Gemma4RMSNormZeroShift: Module, UnaryLayer {
     let eps: Float
     // `@ParameterInfo` is the correct wrapper for raw `MLXArray`
     // parameters — `@ModuleInfo` is for nested `Module` children.
@@ -483,7 +483,7 @@ private final class Gemma4RMSNormZeroShift: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4TextMLP: Module, UnaryLayer {
+private class Gemma4TextMLP: Module, UnaryLayer {
     @ModuleInfo(key: "gate_proj") var gateProj: Linear
     @ModuleInfo(key: "down_proj") var downProj: Linear
     @ModuleInfo(key: "up_proj") var upProj: Linear
@@ -505,7 +505,7 @@ private final class Gemma4TextMLP: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4TextRouter: Module {
+private class Gemma4TextRouter: Module {
     let topKExperts: Int
     private let rootSize: Float
 
@@ -547,7 +547,7 @@ private final class Gemma4TextRouter: Module {
     }
 }
 
-private final class Gemma4TextExperts: Module {
+private class Gemma4TextExperts: Module {
     @ModuleInfo(key: "switch_glu") var switchGLU: SwitchGLU
 
     init(config: Gemma4TextConfiguration) {
@@ -584,7 +584,7 @@ private final class Gemma4TextExperts: Module {
     }
 }
 
-private final class Gemma4ScaledLinear: Module, UnaryLayer {
+private class Gemma4ScaledLinear: Module, UnaryLayer {
     @ModuleInfo(key: "weight") var weight: MLXArray
     let scalar: Float
 
@@ -599,7 +599,7 @@ private final class Gemma4ScaledLinear: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4TextAttention: Module {
+private class Gemma4TextAttention: Module {
     let config: Gemma4TextConfiguration
     let layerIdx: Int
     let layerType: String
@@ -750,7 +750,7 @@ private final class Gemma4TextAttention: Module {
     }
 }
 
-private final class Gemma4TextDecoderLayer: Module {
+private class Gemma4TextDecoderLayer: Module {
     let layerType: String
     let enableMoE: Bool
 
@@ -1070,7 +1070,7 @@ private class Gemma4TextBackbone: Module {
     }
 }
 
-private final class Gemma4TextLanguageModel: Module, KVCacheDimensionProvider {
+private class Gemma4TextLanguageModel: Module, KVCacheDimensionProvider {
     let config: Gemma4TextConfiguration
     let finalLogitSoftcapping: Float?
 
@@ -1199,7 +1199,7 @@ private final class Gemma4TextLanguageModel: Module, KVCacheDimensionProvider {
 
 // MARK: - Vision
 
-private final class Gemma4ClippableLinear: Module, UnaryLayer {
+private class Gemma4ClippableLinear: Module, UnaryLayer {
     let useClipping: Bool
 
     // `Module` (not `Linear`) so the loader accepts the projection in
@@ -1255,7 +1255,7 @@ private final class Gemma4ClippableLinear: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4VisionRMSNorm: Module, UnaryLayer {
+private class Gemma4VisionRMSNorm: Module, UnaryLayer {
     let eps: Float
     // Same `@ParameterInfo` correction as on
     // `Gemma4RMSNormZeroShift` — without it the vision-side norm
@@ -1277,7 +1277,7 @@ private final class Gemma4VisionRMSNorm: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4VisionRMSNormNoScale: Module, UnaryLayer {
+private class Gemma4VisionRMSNormNoScale: Module, UnaryLayer {
     let eps: Float
 
     init(eps: Float = 1e-6) {
@@ -1292,7 +1292,7 @@ private final class Gemma4VisionRMSNormNoScale: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4VisionAttention: Module {
+private class Gemma4VisionAttention: Module {
     let numHeads: Int
     let numKVHeads: Int
     let headDim: Int
@@ -1382,7 +1382,7 @@ private final class Gemma4VisionAttention: Module {
     }
 }
 
-private final class Gemma4VisionMLP: Module, UnaryLayer {
+private class Gemma4VisionMLP: Module, UnaryLayer {
     @ModuleInfo(key: "gate_proj") var gateProj: Gemma4ClippableLinear
     @ModuleInfo(key: "up_proj") var upProj: Gemma4ClippableLinear
     @ModuleInfo(key: "down_proj") var downProj: Gemma4ClippableLinear
@@ -1411,7 +1411,7 @@ private final class Gemma4VisionMLP: Module, UnaryLayer {
     }
 }
 
-private final class Gemma4VisionTransformerBlock: Module {
+private class Gemma4VisionTransformerBlock: Module {
     @ModuleInfo(key: "self_attn") var selfAttention: Gemma4VisionAttention
     @ModuleInfo var mlp: Gemma4VisionMLP
     @ModuleInfo(key: "input_layernorm") var inputLayerNorm: Gemma4RMSNormZeroShift
@@ -1444,7 +1444,7 @@ private final class Gemma4VisionTransformerBlock: Module {
     }
 }
 
-private final class Gemma4VisionPatchEmbedder: Module {
+private class Gemma4VisionPatchEmbedder: Module {
     let patchSize: Int
     let hiddenSize: Int
     let positionEmbeddingSize: Int
@@ -1496,7 +1496,7 @@ private final class Gemma4VisionPatchEmbedder: Module {
     }
 }
 
-private final class Gemma4VisionPooler: Module {
+private class Gemma4VisionPooler: Module {
     let hiddenSize: Int
     let defaultOutputLength: Int
     let rootHiddenSize: Float
@@ -1547,7 +1547,7 @@ private final class Gemma4VisionPooler: Module {
     }
 }
 
-private final class Gemma4VisionTransformerModel: Module {
+private class Gemma4VisionTransformerModel: Module {
     @ModuleInfo(key: "layers") var layers: [Gemma4VisionTransformerBlock]
 
     init(config: Gemma4VisionConfiguration) {
@@ -1567,7 +1567,7 @@ private final class Gemma4VisionTransformerModel: Module {
     }
 }
 
-private final class Gemma4VisionModel: Module {
+private class Gemma4VisionModel: Module {
     let config: Gemma4VisionConfiguration
     let patchSize: Int
     let defaultOutputLength: Int
@@ -1665,7 +1665,7 @@ private final class Gemma4VisionModel: Module {
     }
 }
 
-private final class Gemma4MultimodalEmbedder: Module, UnaryLayer {
+private class Gemma4MultimodalEmbedder: Module, UnaryLayer {
     // `Module` (not `Linear`) so the loader accepts either the raw
     // `Linear` (bf16 / fp16 checkpoints) or a `QuantizedLinear`
     // shape (4-bit / 8-bit checkpoints, which ship `weight + scales
@@ -1701,7 +1701,7 @@ private final class Gemma4MultimodalEmbedder: Module, UnaryLayer {
 
 // MARK: - Model
 
-public final class Gemma4: Module, VLMModel, KVCacheDimensionProvider {
+public class Gemma4: Module, VLMModel, KVCacheDimensionProvider {
     @ModuleInfo(key: "vision_tower") private var visionTower: Gemma4VisionModel
     @ModuleInfo(key: "language_model") private var languageModel: Gemma4TextLanguageModel
     @ModuleInfo(key: "embed_vision") private var embedVision: Gemma4MultimodalEmbedder
